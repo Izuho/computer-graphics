@@ -112,12 +112,18 @@
               // Quads can be drawn by using legacygl.QUADS which internally splits each quad into two triangles
               legacygl.begin(gl.TRIANGLES);
               mesh_subdiv.faces.forEach(function (f) {
-		  legacygl.normal3(f.normal);
-		  f.vertices().forEach(function (v) {
-		      legacygl.vertex3(v.point);
-		  });
+		  var fixed_point = f.vertices()[0];
+		  var n = f.vertices().length;
+		  // f.vertices().forEach(function (v) {
+		  for (i = 1; i < n - 1; ++i) {
+		      legacygl.normal3(f.normal);
+		      legacygl.vertex3(f.vertices()[i].point);
+		      legacygl.vertex3(f.vertices()[i + 1].point);
+		      legacygl.vertex3(fixed_point.point);
+		  }
+		  // });
               });
-              legacygl.end();
+	      legacygl.end();
           });
           legacygl.uniforms.use_material.pop();
 
@@ -220,24 +226,21 @@
       }
       function subdivide2() {
           // 初期化
-          mesh_subdiv.vertices.forEach(function (v) {
-              v.subdiv_point_num = [];
-          });
           mesh_subdiv.edges_forEach(function (e) {
               e.halfedge.subdiv_point_num = [];
               e.halfedge.opposite.subdiv_point_num = [];
           });
           mesh_subdiv.faces.forEach(function (f) {
               f.subdiv_point_num = [];
+	      f.subdiv_point = [];
           });
-          var mesh_subdiv_next = make_halfedge_mesh();
+	  
           // 頂点決定
           var i = 0;
           mesh_subdiv.faces.forEach(function (f) {
 	      var check = 0;
               var n = f.vertices().length;
-              f.subdiv_point = [];
-	      var g = [];
+	      var g = [0,0,0];
 	      f.halfedges().forEach(function (h) {
 		  vec3.add(g, vec3.scale([], h.vertex.point, 1 / n), g);
 	      });	      
@@ -245,17 +248,16 @@
 		  var v = h.vertex;
 		  var w0 = h.prev.vertex;
 		  var w1 = h.next.vertex;
-		  f.subdiv_point.push(
+		  var pp =
 		      vec3.add([],
 			  vec3.add([],
 			      vec3.add([],
 				  vec3.scale([], v.point, 1 / 4),
 				  vec3.scale([], vec3.add([], v.point, w1.point), 1 / 8)),
 			      vec3.scale([], vec3.add([], v.point, w0.point), 1 / 8)),
-			  vec3.scale([], g, 1 / 4))
-		  );
+			  vec3.scale([], g, 1 / 4));
+		  f.subdiv_point.push(pp);
 
-		  v.subdiv_point_num.push(i);
 		  h.subdiv_point_num.push(i);
 		  if (check == 0) {
 		      h.opposite.subdiv_point_num.push(i + n - 1);
@@ -268,7 +270,9 @@
               });
           });
 
+	  var mesh_subdiv_next = make_halfedge_mesh();
 	  // ポリゴンの決定
+	  // + 90
 	  mesh_subdiv.edges_forEach(function (e) {
               var fv_idx = e.halfedge.subdiv_point_num;
 	      fv_idx.push(e.halfedge.opposite.subdiv_point_num[1]);
@@ -276,21 +280,39 @@
               mesh_subdiv_next.add_face(fv_idx);
           });
 
+	  // + 60
 	  mesh_subdiv.faces.forEach(function (f) {
               mesh_subdiv_next.add_face(f.subdiv_point_num);
           });
 
-	  var prev_mesh_subdiv_next_face_num = mesh_subdiv_next.num_faces();
+	  // + 32
+	  var see = 150
 	  mesh_subdiv.vertices.forEach(function (v) {
-	      var top = v.subdiv_point_num[0];
-	      var perm = v.subdiv_point_num.slice(1).permutation();
-	      for (x = 0, len = perm.length; x < len; ++x) {
-		  mesh_subdiv_next.add_face(perm[x].unshift(top));
-		  if (prev_mesh_subdiv_next_face_num != mesh_subdiv_next.num_faces()) {
-		      prev_mesh_subdiv_next_face_num += 1;
-		      break;
+	      var h = v.halfedge;
+	      var fv_idx = [h.opposite.subdiv_point_num[0]];
+	      var dont_take = h.opposite.subdiv_point_num[1];
+	      while(true) {
+		  while(true) {
+		      h = h.next;
+		      if (h.vertex == v.halfedge.from_vertex()) break;
 		  }
-	      }
+		  if (dont_take == h.subdiv_point_num[1]) {
+		      fv_idx.push(dont_take);
+		      dont_take = h.subdiv_point_num[0];
+		  } else if (dont_take == h.subdiv_point_num[0]) {
+		      fv_idx.push(dont_take);
+		      dont_take = h.subdiv_point_num[1];
+		  } else if (fv_idx[fv_idx.length - 1] == h.subdiv_point_num[0]) {
+		      fv_idx.push(h.subdiv_point_num[1]);
+		  } else {
+		      fv_idx.push(h.subdiv_point_num[0]);
+		  }
+		 
+		  if (h.opposite == v.halfedge) break;
+		  else h = h.opposite;
+	      };
+	      mesh_subdiv_next.add_face(fv_idx.slice(1));
+	      see += 1;
           });
 	  
           // 頂点の座標決定
@@ -303,10 +325,23 @@
 		  i += 1;
               });
           });
-          
+	  
           mesh_subdiv = mesh_subdiv_next;
           mesh_subdiv.init_ids();
           mesh_subdiv.init_boundaries();
+	  
+	  mesh_subdiv.faces.forEach(function (f) {
+              var h = f.halfedge;
+              while (true) {
+		  if (h == null) {
+		      console.log("No next edge at (" + f.id + ")");
+		      return;
+		  }
+                  h = h.next;
+                  if (h == f.halfedge) break;
+              }
+          });
+	  
           mesh_subdiv.compute_normals();
           displist_subdiv_faces.invalidate();
           displist_subdiv_edges.invalidate();
