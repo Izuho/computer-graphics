@@ -28,6 +28,34 @@
       var drawutil;
       var camera;
 
+      // JavaScript Array permutation generator
+      // (optimized from CoffeeScript output: see ArrayPermutation.coffee)
+      (function() {
+	  var generatePermutation = function(perm, pre, post, n) {
+	      var elem, i, rest, len;
+	      if (n > 0)
+		  for (i = 0, len = post.length; i < len; ++i) {
+		      rest = post.slice(0);
+		      elem = rest.splice(i, 1);
+		      generatePermutation(perm, pre.concat(elem), rest, n - 1);
+		  }
+	      else
+		  perm.push(pre);
+	  };
+
+	  /*
+	    extend Array.prototype
+	    e.g. [0, 1, 2].permutation(2)
+	    => [[0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1]]
+	  */
+	  Array.prototype.permutation = function(n) {
+	      if (n == null) n = this.length;
+	      var perm = [];
+	      generatePermutation(perm, [], this, n);
+	      return perm;
+	  };
+      })();
+      
       function draw() {
           gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
           if (!mesh_control) return;
@@ -206,31 +234,25 @@
           // 頂点決定
           var i = 0;
           mesh_subdiv.faces.forEach(function (f) {
-              var check = 0;
+	      var check = 0;
               var n = f.vertices().length;
               f.subdiv_point = [];
+	      var g = [];
+	      f.halfedges().forEach(function (h) {
+		  vec3.add(g, vec3.scale([], h.vertex.point, 1 / n), g);
+	      });	      
               f.halfedges().forEach(function (h) {
 		  var v = h.vertex;
 		  var w0 = h.prev.vertex;
 		  var w1 = h.next.vertex;
 		  f.subdiv_point.push(
-		      vec3.add(
-			  [],
-			  vec3.add(
-			      [],
-			      vec3.add(
-				  [],
+		      vec3.add([],
+			  vec3.add([],
+			      vec3.add([],
 				  vec3.scale([], v.point, 1 / 4),
-				  vec3.scale([], vec3.add([], v.point, w1.point), 1 / 8)
-			      ),
-			      vec3.scale([], vec3.add([], v.point, w0.point), 1 / 8)
-			  ),
-			  vec3.add(
-			      [],
-			      vec3.scale([], v.point, (1 / 4) * n),
-			      vec3.scale([], vec3.add([], w0.point, w1.point), (1 / 4) * n)
-			  )
-		      )
+				  vec3.scale([], vec3.add([], v.point, w1.point), 1 / 8)),
+			      vec3.scale([], vec3.add([], v.point, w0.point), 1 / 8)),
+			  vec3.scale([], g, 1 / 4))
 		  );
 
 		  v.subdiv_point_num.push(i);
@@ -247,17 +269,28 @@
           });
 
 	  // ポリゴンの決定
-          mesh_subdiv.faces.forEach(function (f) {
-              mesh_subdiv_next.add_face(f.subdiv_point_num);
-          });
-          mesh_subdiv.edges_forEach(function (e) {
-              var fv_idx = e.halfedge.subdiv_point_num.concat(
-		  e.halfedge.opposite.subdiv_point_num
-              );
+	  mesh_subdiv.edges_forEach(function (e) {
+              var fv_idx = e.halfedge.subdiv_point_num;
+	      fv_idx.push(e.halfedge.opposite.subdiv_point_num[1]);
+	      fv_idx.push(e.halfedge.opposite.subdiv_point_num[0]);
               mesh_subdiv_next.add_face(fv_idx);
           });
-          mesh_subdiv.vertices.forEach(function (v) {
-              mesh_subdiv_next.add_face(v.subdiv_point_num);
+
+	  mesh_subdiv.faces.forEach(function (f) {
+              mesh_subdiv_next.add_face(f.subdiv_point_num);
+          });
+
+	  var prev_mesh_subdiv_next_face_num = mesh_subdiv_next.num_faces();
+	  mesh_subdiv.vertices.forEach(function (v) {
+	      var top = v.subdiv_point_num[0];
+	      var perm = v.subdiv_point_num.slice(1).permutation();
+	      for (x = 0, len = perm.length; x < len; ++x) {
+		  mesh_subdiv_next.add_face(perm[x].unshift(top));
+		  if (prev_mesh_subdiv_next_face_num != mesh_subdiv_next.num_faces()) {
+		      prev_mesh_subdiv_next_face_num += 1;
+		      break;
+		  }
+	      }
           });
 	  
           // 頂点の座標決定
