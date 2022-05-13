@@ -1,0 +1,289 @@
+<html>
+<head>
+<title>Marching tetrahedron</title>
+<script src="https://rawcdn.githack.com/toji/gl-matrix/v3.3.0/dist/gl-matrix-min.js"></script>
+<script src="https://bb.githack.com/kenshi84/legacygl.js/raw/master/gl-matrix-util.js"></script>
+<script src="https://bb.githack.com/kenshi84/legacygl.js/raw/master/legacygl.js"></script>
+<script src="https://bb.githack.com/kenshi84/legacygl.js/raw/master/drawutil.js"></script>
+<script src="https://bb.githack.com/kenshi84/legacygl.js/raw/master/camera.js"></script>
+<script src="https://bb.githack.com/kenshi84/legacygl.js/raw/master/util.js"></script>
+<script type="text/javascript">
+var gl;
+var canvas;
+var legacygl;
+var drawutil;
+var camera;
+const e = 0.1
+function draw() {
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // projection and camera position
+    mat4.perspective(legacygl.uniforms.projection.value, Math.PI / 6, canvas.aspect_ratio(), 0.1, 1000);
+    camera.lookAt(legacygl.uniforms.modelview.value);
+    // draw zx-grid
+    legacygl.color(0.5, 0.5, 0.5);
+    drawutil.zxgrid(50);
+    
+    function ball(x, y, z) {
+	if (x*x + y*y + z*z < 1*1) {
+	    return true;
+	} else {
+	    return false;
+	}
+    }
+    function torus(x, y, z) {
+	var xy = Math.sqrt(x*x+y*y)-1.5*1.5;
+	if (xy*xy+z*z < 1*1) {
+	    return true;
+	} else {
+	    return false;
+	}
+    }
+    function denka(x, y, z) {
+	var p1 = Math.sqrt((x-1)*(x-1)+(y-1)*(y-1)+z*z)+1e-10;
+	var p2 = Math.sqrt((x-1)*(x-1)+(y+1)*(y+1)+z*z)+1e-10;
+	var p3 = Math.sqrt((x+1)*(x+1)+(y-1)*(y-1)+z*z)+1e-10;
+	var p4 = Math.sqrt((x+1)*(x+1)+(y+1)*(y+1)+z*z)+1e-10;
+	if (1/p1+1/p2+1/p3+1/p4 < 2.8) {
+	    return true;
+	} else {
+	    return false;
+	}
+    }
+    var i = 0, j = 0;
+    function add_quads(x1,y1,z1,
+		       x2,y2,z2,
+		       x3,y3,z3,
+		       x4,y4,z4) {
+	var p1 = torus(x1,y1,z1);
+	var p2 = torus(x2,y2,z2);
+	var p3 = torus(x3,y3,z3);
+	var p4 = torus(x4,y4,z4);
+	if (p1) {
+	    if (p2) {
+		if (p3) {
+		    if (p4) {}
+		    else {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x1+x4)/2, (y1+y4)/2, (z1+z4)/2);
+			legacygl.vertex((x2+x4)/2, (y2+y4)/2, (z2+z4)/2);
+			legacygl.vertex((x3+x4)/2, (y3+y4)/2, (z3+z4)/2);
+			legacygl.end();
+			//console.log("x4 弾く" + i);
+			//i++;
+		    }
+		} else {
+		    if (p4) {	    
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x1+x3)/2, (y1+y3)/2, (z1+z3)/2);
+			legacygl.vertex((x2+x3)/2, (y2+y3)/2, (z2+z3)/2);
+			legacygl.vertex((x4+x3)/2, (y4+y3)/2, (z4+z3)/2);
+			legacygl.end();
+			//console.log("x3 弾く" + j);
+			//j++;
+		    } else {
+			legacygl.begin(legacygl.QUADS);
+			legacygl.vertex((x1+x4)/2, (y1+y4)/2, (z1+z4)/2);
+			legacygl.vertex((x2+x4)/2, (y2+y4)/2, (z2+z4)/2);
+			legacygl.vertex((x2+x3)/2, (y2+y3)/2, (z2+z3)/2);
+			legacygl.vertex((x1+x3)/2, (y1+y3)/2, (z1+z3)/2);
+			legacygl.end();
+		    }
+		}
+	    } else {
+		if (p3) {
+		    if (p4) {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
+			legacygl.vertex((x4+x2)/2, (y4+y2)/2, (z4+z2)/2);
+			legacygl.vertex((x3+x2)/2, (y3+y2)/2, (z3+z2)/2);
+			legacygl.end();
+		    } else {
+			legacygl.begin(legacygl.QUADS);
+			legacygl.vertex((x1+x4)/2, (y1+y4)/2, (z1+z4)/2);
+			legacygl.vertex((x3+x4)/2, (y3+y4)/2, (z3+z4)/2);
+			legacygl.vertex((x2+x3)/2, (y2+y3)/2, (z2+z3)/2);
+			legacygl.vertex((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
+			legacygl.end();
+		    }
+		} else {
+		    if (p4) {
+			legacygl.begin(legacygl.QUADS);
+			legacygl.vertex((x3+x4)/2, (y3+y4)/2, (z3+z4)/2);
+			legacygl.vertex((x2+x4)/2, (y2+y4)/2, (z2+z4)/2);
+			legacygl.vertex((x2+x1)/2, (y2+y1)/2, (z2+z1)/2);
+			legacygl.vertex((x1+x3)/2, (y1+y3)/2, (z1+z3)/2);
+			legacygl.end();
+		    } else {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x4+x1)/2, (y4+y1)/2, (z4+z1)/2);
+			legacygl.vertex((x2+x1)/2, (y2+y1)/2, (z2+z1)/2);
+			legacygl.vertex((x3+x1)/2, (y3+y1)/2, (z3+z1)/2);
+			legacygl.end();
+		    }
+		}
+	    }
+	} else {
+	    if (p2) {
+		if (p3) {
+		    if (p4) {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x4+x1)/2, (y4+y1)/2, (z4+z1)/2);
+			legacygl.vertex((x2+x1)/2, (y2+y1)/2, (z2+z1)/2);
+			legacygl.vertex((x3+x1)/2, (y3+y1)/2, (z3+z1)/2);
+			legacygl.end();
+		    } else {
+			legacygl.begin(legacygl.QUADS);
+			legacygl.vertex((x3+x4)/2, (y3+y4)/2, (z3+z4)/2);
+			legacygl.vertex((x2+x4)/2, (y2+y4)/2, (z2+z4)/2);
+			legacygl.vertex((x2+x1)/2, (y2+y1)/2, (z2+z1)/2);
+			legacygl.vertex((x1+x3)/2, (y1+y3)/2, (z1+z3)/2);
+			legacygl.end();
+		    }
+		} else {
+		    if (p4) {
+			legacygl.begin(legacygl.QUADS);
+			legacygl.vertex((x1+x4)/2, (y1+y4)/2, (z1+z4)/2);
+			legacygl.vertex((x3+x4)/2, (y3+y4)/2, (z3+z4)/2);
+			legacygl.vertex((x2+x3)/2, (y2+y3)/2, (z2+z3)/2);
+			legacygl.vertex((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
+			legacygl.end();
+		    } else {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
+			legacygl.vertex((x4+x2)/2, (y4+y2)/2, (z4+z2)/2);
+			legacygl.vertex((x3+x2)/2, (y3+y2)/2, (z3+z2)/2);
+			legacygl.end();
+		    }
+		}
+	    } else {
+		if (p3) {
+		    if (p4) {
+			legacygl.begin(legacygl.QUADS);
+			legacygl.vertex((x1+x4)/2, (y1+y4)/2, (z1+z4)/2);
+			legacygl.vertex((x2+x4)/2, (y2+y4)/2, (z2+z4)/2);
+			legacygl.vertex((x2+x3)/2, (y2+y3)/2, (z2+z3)/2);
+			legacygl.vertex((x1+x3)/2, (y1+y3)/2, (z1+z3)/2);
+			legacygl.end();
+		    } else {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x1+x3)/2, (y1+y3)/2, (z1+z3)/2);
+			legacygl.vertex((x2+x3)/2, (y2+y3)/2, (z2+z3)/2);
+			legacygl.vertex((x4+x3)/2, (y4+y3)/2, (z4+z3)/2);
+			legacygl.end();
+		    }
+		} else {
+		    if (p4) {
+			legacygl.begin(legacygl.TRIANGLES);
+			legacygl.vertex((x1+x4)/2, (y1+y4)/2, (z1+z4)/2);
+			legacygl.vertex((x2+x4)/2, (y2+y4)/2, (z2+z4)/2);
+			legacygl.vertex((x3+x4)/2, (y3+y4)/2, (z3+z4)/2);
+			legacygl.end();
+		    } else {}
+		}
+	    }
+	}
+    }
+    // draw quad
+    mat4.rotateY_ip(legacygl.uniforms.modelview.value, 1.1);
+    legacygl.color(0, 0.7, 1);
+
+    for (let x = -4.; x < 4.; x = x + e) {
+	for (let y = -4.; y < 4.; y = y + e) {
+	    for (let z = -4.; z < 4.; z = z + e) {
+		// 1 (xyz, x'yz, xy'z, x'yz')
+		add_quads(x,y,z,
+			  x+e,y,z,
+			  x,y+e,z,
+			  x+e,y,z+e);
+		// 2 (xy'z, x'yz, x'y'z, x'yz')
+		add_quads(x,y+e,z,
+			  x+e,y,z,
+			  x+e,y+e,z,
+			  x+e,y,z+e);
+		// 3 (xyz, xy'z, x'yz', xyz')
+		add_quads(x,y,z,
+			  x,y+e,z,
+			  x+e,y,z+e,
+			  x,y,z+e);
+		// 4 (xyz', x'yz', xy'z, xy'z')
+		add_quads(x,y,z+e,
+			  x+e,y,z+e,
+			  x,y+e,z,
+			  x,y+e,z+e);
+		// 5 (xy'z', xy'z, x'yz', x'y'z')
+		add_quads(x,y+e,z+e,
+			  x,y+e,z,
+			  x+e,y,z+e,
+			  x+e,y+e,z+e);
+		// 6 (xy'z, x'y'z, x'yz', x'y'z')
+		add_quads(x,y+e,z,
+			  x+e,y+e,z,
+			  x+e,y,z+e,
+			  x+e,y+e,z+e);
+	    }
+	}
+    }
+};
+function init() {
+    // OpenGL context
+    canvas = document.getElementById("canvas");
+    gl = canvas.getContext("experimental-webgl");
+    if (!gl)
+        alert("Could not initialize WebGL!");
+    var vertex_shader_src = "\
+        attribute vec3 a_vertex;\
+        attribute vec3 a_color;\
+        varying vec3 v_color;\
+        uniform mat4 u_modelview;\
+        uniform mat4 u_projection;\
+        void main(void) {\
+            gl_Position = u_projection * u_modelview * vec4(a_vertex, 1.0);\
+            v_color = a_color;\
+        }\
+        ";
+    var fragment_shader_src = "\
+        precision mediump float;\
+        varying vec3 v_color;\
+        void main(void) {\
+            gl_FragColor = vec4(v_color, 1.0);\
+        }\
+        ";
+    legacygl = get_legacygl(gl, vertex_shader_src, fragment_shader_src);
+    legacygl.add_uniform("modelview", "Matrix4f");
+    legacygl.add_uniform("projection", "Matrix4f");
+    legacygl.add_vertex_attribute("color", 3);
+    drawutil = get_drawutil(gl, legacygl);
+    camera = get_camera(canvas.width);
+    camera.eye = [40, 20, 30];
+    // event handlers
+    canvas.onmousedown = function(evt) {
+        camera.start_moving(this.get_mousepos(evt), evt.shiftKey ? "zoom" : evt.ctrlKey ? "pan" : "rotate");
+    };
+    canvas.onmousemove = function(evt) {
+        if (camera.is_moving()) {
+            camera.move(this.get_mousepos(evt));
+            draw();
+        }
+    };
+    document.onmouseup = function(evt) {
+        if (camera.is_moving())
+            camera.finish_moving();
+    };
+    // init OpenGL settings
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clearColor(1, 1, 1, 1);
+};
+</script>
+</head>
+<body onload="init(); draw();">
+    <h2>legacygl.js Demo: Hello World 3D</h2>
+    <canvas id="canvas" width="640" height="480" style="border:1px solid #000000;"></canvas>
+    <h3>Camera Control:</h3>
+    <ul>
+        <li>Drag: Rotate</li>
+        <li>Shift+Drag: Zoom</li>
+        <li>Ctrl+Drag: Pan</li>
+    </ul>
+</body>
+</html>
