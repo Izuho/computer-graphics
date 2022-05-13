@@ -13,7 +13,7 @@ var canvas;
 var legacygl;
 var drawutil;
 var camera;
-const e = 0.2
+const e = 0.1
 function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     // projection and camera position
@@ -38,15 +38,26 @@ function draw() {
 	    return false;
 	}
     }
+    function denka(x, y, z) {
+	var p1 = Math.sqrt((x-1)*(x-1)+(y-1)*(y-1)+z*z)+1e-10;
+	var p2 = Math.sqrt((x-1)*(x-1)+(y+1)*(y+1)+z*z)+1e-10;
+	var p3 = Math.sqrt((x+1)*(x+1)+(y-1)*(y-1)+z*z)+1e-10;
+	var p4 = Math.sqrt((x+1)*(x+1)+(y+1)*(y+1)+z*z)+1e-10;
+	if (1/p1+1/p2+1/p3+1/p4 < 2.8) {
+	    return true;
+	} else {
+	    return false;
+	}
+    }
     var i = 0, j = 0;
     function add_quads(x1,y1,z1,
 		       x2,y2,z2,
 		       x3,y3,z3,
 		       x4,y4,z4) {
-	var p1 = torus(x1,y1,z1);
-	var p2 = torus(x2,y2,z2);
-	var p3 = torus(x3,y3,z3);
-	var p4 = torus(x4,y4,z4);
+	var p1 = denka(x1,y1,z1);
+	var p2 = denka(x2,y2,z2);
+	var p3 = denka(x3,y3,z3);
+	var p4 = denka(x4,y4,z4);
 	if (p1) {
 	    if (p2) {
 		if (p3) {
