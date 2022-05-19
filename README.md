@@ -10,3 +10,6 @@
 ## 5-12
 - Marching Tetrahedraの実装
 - htmlをちょこっと書き換えて４点電荷、トーラス、球体を表示可能
+
+## 5-19
+- Inverse Kinematicsを2DでCyclic Coordinate Descent(CCD)法によって実装
