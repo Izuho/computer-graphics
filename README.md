@@ -13,3 +13,6 @@
 
 ## 5-19
 - Inverse Kinematicsを2DでCyclic Coordinate Descent(CCD)法によって実装
+
+## 6-30
+- Biliteral Filterを実装　（Gaussian Filterも実装されている）
