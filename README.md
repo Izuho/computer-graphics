@@ -16,3 +16,7 @@
 
 ## 6-30
 - Biliteral Filterを実装　（Gaussian Filterも実装されている）
+
+## 9-16
+- Tensorflowの勉強
+- fashion-mnistを使った
