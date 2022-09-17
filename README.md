@@ -20,3 +20,9 @@
 ## 9-16
 - Tensorflowの勉強
 - fashion-mnistを使った
+- Multi-Layer Perceptronを作った
+
+## 9-17
+- Tensorflowの勉強
+- fashion-mnistを使った
+- Autoencoderを作った
