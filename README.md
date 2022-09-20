@@ -26,3 +26,8 @@
 - Tensorflowの勉強
 - fashion-mnistを使った
 - Autoencoderを作った
+
+## 9-20
+- Tensorflowの勉強
+- fashion-mnistを使った
+- Convolutional Neural Networkを作った。covolutional layerでedgeを認識し、pooling layerで位置の移動を無視する。
