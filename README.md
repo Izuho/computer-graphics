@@ -27,7 +27,11 @@
 - fashion-mnistを使った
 - Autoencoderを作った
 
-## 9-20
+## 9-18
 - Tensorflowの勉強
 - fashion-mnistを使った
 - Convolutional Neural Networkを作った。covolutional layerでedgeを認識し、pooling layerで位置の移動を無視する。
+
+## 9-20
+- l1, l2正則化の実装方法を知った。
+- Principle Component Analysisをscikit-learnで使用した。
